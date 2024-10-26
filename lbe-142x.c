@@ -35,11 +35,9 @@ int main(int argc, char **argv)
     char dev[60];
     uint32_t new_f = 0xffffffff;
 
-//    processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
     get_args(argc, argv, dev, &new_f, &blink, &enable, &save);
 
     struct hidraw_devinfo info;
-    //Device connected, setup report structs
     memset(&info, 0x0, sizeof(info));
 
     printf("Opening device %s\n", dev);
@@ -59,12 +57,12 @@ int main(int argc, char **argv)
     if ( blink == 1 )
         blink_led(fd);
 
-    if ( enable == 1 )
-        enable_output(fd, 1);
-    else
+    if ( enable == 0 )
         enable_output(fd, 0);
+    else
+        enable_output(fd, 1);
 
-    if ( new_f != 0xffffffff)
+    if (new_f != 0xffffffff)
         res = set_freq(fd, new_f, cur_f, save);
 
     res = get_device_status(fd, &cur_f);
@@ -237,7 +235,7 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
     int opt;
     int flag = 0;
 
-    while ((opt = getopt(argc, argv, "hdfbos:")) != -1) {
+    while ((opt = getopt(argc, argv, "hdfbns:")) != -1) {
         switch (opt) {
             case 'h':
                 printf("Usage: %s [-h] [-d filename]\n", argv[0]);
@@ -246,7 +244,7 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
                 printf("  -f frequency Specify an integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n");
                 printf("  -b           blink led (2s)\n");
                 printf("  -s           Save frequency\n");
-                printf("  -o           Activate output (no output by default)\n");
+                printf("  -n           Deactivate output (output is enabled by default)\n");
                 exit(EXIT_SUCCESS);
             case 'd':
                 printf("Opening device: %s\n", optarg);
@@ -265,8 +263,8 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
             case 'b':
                 *blink = 1;
                 break;
-            case 'o':
-                *enable = 1;
+            case 'n':
+                *enable = 0;
                 break;
             case 's':
                 *save = 0;
