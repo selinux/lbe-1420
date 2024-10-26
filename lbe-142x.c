@@ -175,7 +175,7 @@ int main(int argc, char **argv)
 }
 
 
-int processCommandLineArguments(int argc, char **argv, int *freq, int *blink, int *enable,int *save)
+int processCommandLineArguments(int argc, char **argv, uint32_t *freq, int *blink, int *enable,int *save)
 {
     int c;
     
