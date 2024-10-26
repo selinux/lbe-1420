@@ -66,17 +66,18 @@ int main(int argc, char **argv)
       if (res < 0) 
       {
             perror("HIDIOCGRAWINFO");
+            return -1;
       } 
-      else
-      {
-            if (info.vendor != VID_LBE || (info.product != PID_LBE_1420 && info.product != PID_LBE_1421)) {
-                  printf("    Not a valid LBE-142x Device\n\n");
-                  printf("    Device Info:\n");
-                  printf("        vendor: 0x%04hx\n", info.vendor);
-                  printf("        product: 0x%04hx\n", info.product);
-                  return -1;//Device not valid
-            }
+ 
+      if (info.vendor == VID_LBE && (info.product == PID_LBE_1420 || info.product == PID_LBE_1421)) {
+            printf("\tDevice Info:\n");
+            printf("\t\tvendor: 0x%04hx\n", info.vendor);
+            printf("\t\tproduct: 0x%04hx\n", info.product);
+      } else {
+            printf("    Not a valid LBE-142x Device\n\n");
+            return -1;//Device not valid
       }
+
 
       /* Get Raw Name */
       res = ioctl(fd, HIDIOCGRAWNAME(256), buf);

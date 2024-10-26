@@ -6,8 +6,8 @@
 //Leo LBE-142x defines, dont need anything external this time
 #define VID_LBE                  0x1dd2
 
-#define PID_LBE_1420             0x00002443
-#define PID_LBE_1421             0x0000ffff
+#define PID_LBE_1420             0x2443
+#define PID_LBE_1421             0x244f
 
 
 #define GPS_LOCK_BIT             0x01
