@@ -130,7 +130,7 @@ int main(int argc, char **argv)
 	int blink = -1;
 	int enable = -1;
 	int save = -1;
-	int new_f = 0xffffffff;
+	uint32_t new_f = 0xffffffff;
 	processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
       	printf("  Changes:\n");
       	int changed = 0;
