@@ -1,7 +1,6 @@
-CFLAGS=-Wall
 PROG=lbe-142x
 
-HIDLIB=-L. -lhidapi-hidraw -Wl,-rpath,.
+CFLAGS=-Wall
 
 all: ${PROG}
 
