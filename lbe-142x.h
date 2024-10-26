@@ -23,6 +23,13 @@
 #define LBE_1420_SET_F1          0x04
 
 
-int processCommandLineArguments(int argc, char **argv, uint32_t *freq, int *blink, int *enable, int *save);
+int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *enable, int *save);
+
+int enable_output(int fd, int e);
+int set_freq(int fd, uint32_t new_f, uint32_t cur_f, int save);
+int blink_led(int fd);
+int get_device_name(int fd);
+int get_device_info(int fd);
+int get_device_status(int fd, uint32_t *cur_f);
 
 #endif // LBE_142x_H

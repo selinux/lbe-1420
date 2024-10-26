@@ -23,216 +23,338 @@
 
 int main(int argc, char **argv)
 {
-      printf("Leo Bodnar LBE-142x GPS locked clock source config\n");
-      
-      int fd;
-      int i, res, desc_size = 0;
-      u_int8_t buf[256];
-      uint32_t current_f;
+    printf("Leo Bodnar LBE-142x GPS locked clock source config\n");
 
-      struct hidraw_devinfo info;
+    int fd;
+    int i, res, desc_size = 0;
+    u_int8_t buf[HID_MAX_DESCRIPTOR_SIZE];
+    uint32_t cur_f;
+    int blink = -1;
+    int enable = -1;
+    int save = -1;
+    char dev[60];
+    uint32_t new_f = 0xffffffff;
 
-//      GPSSettings *currentSettings = new GPSSettings;
+//    processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
+    get_args(argc, argv, dev, &new_f, &blink, &enable, &save);
 
-   /* Open the Device with non-blocking reads. In real life,
-      don't use a hard coded path; use libudev instead. 
-   */
-      if (argc == 1)
-      {
-	    printf("Usage: lbe-142x /dev/hidraw??\n\n");
-            printf("        --f1:  integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n               the frequency is saved in flash\n\n");
-            printf(" --f1_nosave:  integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n               the frequency is not saved\n\n");
-            printf("      --out1:  [0,1]\n\n");
-            printf("    --blink1   blinks output 1 LED for 3 seconds\n\n");
-            return -1;
-      }
+    struct hidraw_devinfo info;
+    //Device connected, setup report structs
+    memset(&info, 0x0, sizeof(info));
 
-      printf("Opening device %s\n", argv[1]);
+    printf("Opening device %s\n", dev);
 
-      fd = open(argv[1], O_RDWR|O_NONBLOCK);
+    fd = open(dev, O_RDWR|O_NONBLOCK);
 
-      if (fd < 0) 
-      {
-            perror("    Unable to open device");
-            return 1;
-      }
-
-      //Device connected, setup report structs
-      memset(&info, 0x0, sizeof(info));
-
-      // Get Raw Info
-      res = ioctl(fd, HIDIOCGRAWINFO, &info);
-      
-      if (res < 0) 
-      {
-            perror("HIDIOCGRAWINFO");
-            return -1;
-      } 
- 
-      if (info.vendor == VID_LBE && (info.product == PID_LBE_1420 || info.product == PID_LBE_1421)) {
-            printf("\tDevice Info:\n");
-            printf("\t\tvendor: 0x%04hx\n", info.vendor);
-            printf("\t\tproduct: 0x%04hx\n", info.product);
-      } else {
-            printf("    Not a valid LBE-142x Device\n\n");
-            return -1;//Device not valid
-      }
+    if (fd < 0) {
+        perror("Unable to open device");
+        return 1;
+    }
 
 
-      /* Get Raw Name */
-      res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
+    res = get_device_name(fd);
+    res = get_device_info(fd);
+    res = get_device_status(fd, &cur_f);
 
-      if (res < 0) {
-            perror("HIDIOCGRAWNAME");
-      }
-      else {
-            printf("Connected To: %s\n\n", buf);
-      }
+    if ( blink == 1 )
+        blink_led(fd);
+    else
+        printf("\tNot blinking\n");
 
-      /* Get Feature */
-      buf[0] = 0x9; /* Report Number */
-      res = ioctl(fd, HIDIOCGFEATURE(256), buf);
+    if ( enable == 1 )
+        enable_output(fd, 1);
+    else
+        enable_output(fd, 0);
 
-      if (res < 0) {
-            perror("HIDIOCGFEATURE");
-      } else {
-	      printf("  Status:\n");
-            //currentSettings->setParamsFromReadBuffer(buf,res);
-            if (buf[0] == 0) {
-		    if ((buf[1] & 0x15) == 0x15) {
-		    	printf("    Device OK");
-		    } else {
-		    	if ((buf[1] & GPS_LOCK_BIT) != GPS_LOCK_BIT) {
-		    		printf("\n    No GPS lock\n");	
-		    	}
-		    	if ((buf[1] & ANT_OK_BIT) != ANT_OK_BIT) {
-		    		printf("\n    GPS antenna short circuit\n");	
-		    	}
-		    	if ((buf[1] & OUT1_EN_BIT) != OUT1_EN_BIT) {
-		    		printf("\n    GPS antenna short circuit\n");	
-		    	}
-		    }
-		    current_f = (buf[5] << 24) + (buf[4] << 16) + (buf[3] << 8) + buf[2];
-	            printf("\n    Current Frequency: %i\n", current_f);
-            }
+    if ( new_f != 0xffffffff)
+        res = set_freq(fd, new_f, cur_f, save);
 
-            printf("\n");
-      }
+    res = get_device_status(fd, &cur_f);
+//     /* Get Feature */
+//     buf[0] = 0x9; /* Report Number */
+//     res = ioctl(fd, HIDIOCGFEATURE(256), buf);
+// 
+//     if (res < 0) {
+//         perror("HIDIOCGFEATURE");
+//         return -1;
+//     } else {
+//  
+//     printf("  Status: 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx\n", buf[0], buf[1], buf[2], buf[3], buf[4],buf[5]);
+// 
+//     if (buf[0] == 0) {
+//               if ((buf[1] & 0x15) == 0x15) {
+//                   printf("    Device OK");
+//               } else {
+//                   if ((buf[1] & GPS_LOCK_BIT) != GPS_LOCK_BIT) {
+//                       printf("\n    No GPS lock\n");	
+//                   }
+//     	          if ((buf[1] & ANT_OK_BIT) != ANT_OK_BIT) {
+//                       printf("\n    GPS antenna short circuit\n");	
+//                   }
+//                   if ((buf[1] & OUT1_EN_BIT) != OUT1_EN_BIT) {
+//                       printf("\n    GPS antenna short circuit\n");	
+//                   }
+//               }
+//               current_f = (buf[5] << 24) + (buf[4] << 16) + (buf[3] << 8) + buf[2];
+//               printf("\n    Current Frequency: %i\n", current_f);
+//           }
+//           printf("\n");
+//       }
+// 
+//       /* Get Raw Name */
+//       res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
+// 
+//       if (res < 0) {
+//             perror("HIDIOCGRAWNAME");
+//       } else {
 
-      /* Get Raw Name */
-      res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
+//    //Get CLI values as vars
+//    int blink = -1;
+//    int enable = -1;
+//    int save = -1;
+//    uint32_t new_f = 0xffffffff;
+//    processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
+//    pintf("  Changes:\n");
+//    int changed = 0;
+//
+//    if (new_f != 0xffffffff && new_f != current_f) {
+//	    //Set Frequency
+//	    printf ("    Setting Frequecy: %i\n", new_f);
+//	    
+//	    buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
+//	    buf[1] = (new_f >>  0) & 0xff;
+//	    buf[2] = (new_f >>  8) & 0xff;
+//	    buf[3] = (new_f >> 16) & 0xff;
+//     	    buf[4] = (new_f >> 24) & 0xff;
+//	    /* Set Feature */
+//            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
+//            if (res < 0) perror("HIDIOCSFEATURE");
+//            changed = 1;
+//	}
+//	if (enable != -1) {
+//	    buf[0] = 1;
+//	    buf[1] = enable & 0x01;
+//	    printf ("    Enable State :%i\n", enable);
+//	    /* Set Feature */
+//            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
+//            if (res < 0) perror("HIDIOCSFEATURE");
+//            changed = 1;
+//	}
 
-      if (res < 0) {
-            perror("HIDIOCGRAWNAME");
-      }
-      else {
-
-	//Get CLI values as vars
-	int blink = -1;
-	int enable = -1;
-	int save = -1;
-	uint32_t new_f = 0xffffffff;
-	processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
-      	printf("  Changes:\n");
-      	int changed = 0;
-	if (new_f != 0xffffffff && new_f != current_f) {
-	    //Set Frequency
-	    printf ("    Setting Frequecy: %i\n", new_f);
-	    
-	    buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
-	    buf[1] = (new_f >>  0) & 0xff;
-	    buf[2] = (new_f >>  8) & 0xff;
-	    buf[3] = (new_f >> 16) & 0xff;
-     	    buf[4] = (new_f >> 24) & 0xff;
-	    /* Set Feature */
-            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
-            if (res < 0) perror("HIDIOCSFEATURE");
-            changed = 1;
-	}
-	if (enable != -1) {
-	    buf[0] = 1;
-	    buf[1] = enable & 0x01;
-	    printf ("    Enable State :%i\n", enable);
-	    /* Set Feature */
-            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
-            if (res < 0) perror("HIDIOCSFEATURE");
-            changed = 1;
-	}
-	if (blink != -1) {
-	    buf[0] = 2;
-	    printf ("    Blink LED\n");
-	    /* Set Feature */
-            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
-            if (res < 0) perror("HIDIOCSFEATURE");
-            changed = 1;
-	}
-	if (!changed) {
-	    printf("    No changes made\n");
-	}
-      }
-      close(fd);
-
-      return 0;
+    close(fd);
+    return 0;
 }
 
+int enable_output(int fd, int e){
 
-int processCommandLineArguments(int argc, char **argv, uint32_t *freq, int *blink, int *enable,int *save)
-{
-    int c;
-    
-    while (1)
-    {
-        static struct option long_options[] =
-        {
-                /* These options set a flag. */
-                {"blink1", no_argument, 0, 0},
-                /* These options don’t set a flag.
-                    We distinguish them by their indices. */
-                {"f1",    required_argument, 0, 'a'},
-                {"f1_nosave",     required_argument, 0, 'b'},
-                {"out1",   required_argument, 0, 'c'},
-                {0, 0, 0, 0}
-        };
-        /* getopt_long stores the option index here. */
-        int option_index = 0;
+    int res;
+    u_int8_t buf[60];
+    buf[0] = 1;
+    buf[1] = e & 0x01;
 
-        c = getopt_long (argc, argv, "abc:d:f:",
-                    long_options, &option_index);
+    /* Set Feature */
+    res = ioctl(fd, HIDIOCSFEATURE(60), buf);
+    if (res < 0) {
+        perror("HIDIOCSFEATURE");
+        return -1;
+    }
 
-        /* Detect the end of the options. */
-        if (c == -1)
-        break;
+    return 0;
+}
 
-        switch (c)
-        {
-            case 0:
-            	*blink = 1;
-                /* If this option set a flag, do nothing else now. */
-                if (long_options[option_index].flag != 0)
-                        break;
+int set_freq(int fd, uint32_t new_f, uint32_t cur_f, int save){
+    int res;
+    u_int8_t buf[60];
+
+    if (new_f != 0xffffffff && new_f != cur_f) {
+        printf ("\tSet Frequecy: %i Hz\n", new_f);
+   
+        buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
+        buf[1] = (new_f >>  0) & 0xff;
+        buf[2] = (new_f >>  8) & 0xff;
+        buf[3] = (new_f >> 16) & 0xff;
+        buf[4] = (new_f >> 24) & 0xff;
+
+        /* Set Feature */
+        res = ioctl(fd, HIDIOCSFEATURE(60), buf);
+        if (res < 0) {
+            perror("HIDIOCSFEATURE");
+            return -1;
+        }
+    }
+    return 0;
+}
+
+int blink_led(int fd){
+    int res;
+    u_int8_t buf[60];
+    buf[0] = 2;
+
+    /* Set Feature */
+    res = ioctl(fd, HIDIOCSFEATURE(60), buf);
+    if (res < 0) {
+        perror("HIDIOCSFEATURE");
+        return -1;
+    }
+    printf ("Blink LED\n");
+
+    return 0;
+}
+
+int get_device_name(int fd) {
+    int res;
+    u_int8_t buf[HID_MAX_DESCRIPTOR_SIZE];
+
+    /* Get Raw Name */
+    res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
+
+    if (res < 0) {
+          perror("HIDIOCGRAWNAME");
+          return -1;
+    }
+    printf("Connected To: \n\t%s\n\n", buf);
+
+    return 0;
+}
+
+int get_device_info(int fd) {
+
+    int res;
+    struct hidraw_devinfo info;
+    memset(&info, 0x0, sizeof(info));
+
+    // Get Raw Info
+    res = ioctl(fd, HIDIOCGRAWINFO, &info);
+
+    if (res < 0) {
+        perror("HIDIOCGRAWINFO");
+        return -1;
+    }
+    if (info.vendor == VID_LBE && (info.product == PID_LBE_1420 || info.product == PID_LBE_1421)) {
+        printf("Device Info:\n");
+        printf("\tbus type: 0x%hx\n", info.bustype);
+        printf("\tvendor: 0x%hx\n", info.vendor);
+        printf("\tproduct: 0x%hx\n\n", info.product);
+    } else {
+        printf("Error: Not a valid LBE-142x Device\n\n");
+        exit(EXIT_FAILURE);
+    }
+
+    return 0;
+}
+
+int get_device_status(int fd, uint32_t *cur_f) {
+
+    int res;
+    u_int8_t buf[HID_MAX_DESCRIPTOR_SIZE];
+    memset(&buf, 0x0, HID_MAX_DESCRIPTOR_SIZE);
+
+    printf("Status:\n");
+#ifdef DEBUG
+    printf("\n0x%hx", buf[0]);
+    for (int i = 1; i < 0x1f; i++)
+        printf(", 0x%hx", buf[i]);
+#endif
+
+    buf[0] = 0x9; /* Report Number */
+
+    res = ioctl(fd, HIDIOCGFEATURE(256), buf);
+
+    if (res < 0) {
+        perror("HIDIOCGFEATURE");
+        return -1;
+    }
+
+//#define DEBUG
+#ifdef DEBUG
+    printf("\n0x%hx", buf[0]);
+    for (int i = 1; i < 0x1f; i++)
+        printf(", 0x%hx", buf[i]);
+#endif
+
+    if (buf[1] & 0x1)
+        printf("\tGPS lock\n");
+    else
+        printf("\tNo GPS lock\n");
+
+//     if (buf[1] >> 1 & 0x1)
+//         printf("\tRES 1 bit\n");
+//     else
+//         printf("\tNot RES 1 bit\n");
+// 
+//     if (buf[1] >> 2 & 0x1)
+//         printf("\tRES 2 bit\n");
+//     else
+//         printf("\tNot RES 2 bit\n");
+
+    if (buf[1] >> 3 & 0x1)
+        printf("\tGPS antenna connected\n");
+    else
+        printf("\tGPS antenna short circuit\n");
+
+    if (buf[1] >> 4 & 0x1)
+        printf("\tOutput enabled\n");
+    else
+        printf("\tOutput disabled\n");
+
+    *cur_f = (buf[8] << 16) + (buf[7] << 8) + buf[6];
+    printf("\tCurrent Frequency: %i Hz\n\n", *cur_f);
+
+    return 0;
+}
+
+int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *enable, int *save) {
+
+    // Parse command-line options
+    int opt;
+    int flag = 0;
+
+    while ((opt = getopt(argc, argv, "hdfbos:")) != -1) {
+        switch (opt) {
+            case 'h':
+                printf("Usage: %s [-h] [-d filename]\n", argv[0]);
+                printf("  -h           Display this help message\n");
+                printf("  -d device    Specify a file to process (/dev/hidraw0)\n");
+                printf("  -f frequency Specify an integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n");
+                printf("  -b           blink led (2s)\n");
+                printf("  -s           Save frequency\n");
+                printf("  -o           Activate output (no output by default)\n");
+                exit(EXIT_SUCCESS);
+            case 'd':
+                printf("Opening device: %s\n", optarg);
+                strncpy(dev, argv[optind], 60*sizeof(char)); 
+                flag += 1;
                 break;
-            
-            case 'a'://f1
-                *freq = atoi(optarg);
-                *save = 1;
+            case 'f':
+                *freq = atoi(argv[optind]);
+                if ( *freq < 1 || *freq > 1100000000) {
+                    printf("Error: Frequency not in range 1Hz to 1.1GHz\n");
+                    exit(EXIT_FAILURE);
+                }
+                printf("Output frequency: %i Hz\n", optarg);
+                flag += 1;
                 break;
-
-            case 'b'://f1_nosave
-                *freq = atoi(optarg);
+            case 'b':
+                *blink = 1;
+                break;
+            case 'o':
+                *enable = 1;
+                break;
+            case 's':
                 *save = 0;
                 break;
-
-            case 'c'://N2_HS
-                *enable = atoi(optarg);
-                break;
-
             case '?':
-                /* getopt_long already printed an error message. */
-                break;
-
+                fprintf(stderr, "Unknown option: %c\n", optopt);
+                exit(EXIT_FAILURE);
             default:
-                abort ();
-        }
+                fprintf(stderr, "Error parsing options\n");
+                exit(EXIT_FAILURE);
+            }
+    }
+    // Check for missing required options
+    if (flag < 2) {
+        fprintf(stderr, "Error: Missing required option\n");
+        exit(EXIT_FAILURE);
     }
     return 0;
 }
