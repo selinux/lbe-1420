@@ -1,21 +1,14 @@
-//#include <iostream>
-//using namespace std;
-
-/* Linux */
-#include <linux/hidraw.h>
-
-/* Unix */
 #include <sys/ioctl.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <unistd.h>
 
-/* C */
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdint.h>
 #include <getopt.h>
+
+#include <linux/hidraw.h>
 
 #include "lbe-142x.h"
 
@@ -26,8 +19,6 @@ int main(int argc, char **argv)
     printf("Leo Bodnar LBE-142x GPS locked clock source config\n");
 
     int fd;
-    int i, res, desc_size = 0;
-    u_int8_t buf[HID_MAX_DESCRIPTOR_SIZE];
     uint32_t cur_f;
     int blink = -1;
     int enable = -1;
@@ -49,10 +40,10 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    res = get_device_name(fd);
-    res = get_device_info(fd);
+    get_device_name(fd);
+    get_device_info(fd);
 
-    res = get_device_status(fd, &cur_f);
+    get_device_status(fd, &cur_f);
 
     if ( blink == 1 )
         blink_led(fd);
@@ -63,12 +54,13 @@ int main(int argc, char **argv)
         enable_output(fd, 1);
 
     if (new_f != 0xffffffff)
-        res = set_freq(fd, new_f, cur_f, save);
+        set_freq(fd, new_f, cur_f, save);
 
-    res = get_device_status(fd, &cur_f);
+    get_device_status(fd, &cur_f);
 
     close(fd);
-    return 0;
+
+    exit(EXIT_SUCCESS);
 }
 
 int enable_output(int fd, int e){
@@ -95,8 +87,8 @@ int set_freq(int fd, uint32_t new_f, uint32_t cur_f, int save){
     if (new_f != 0xffffffff && new_f != cur_f) {
         printf ("\tSet Frequecy: %i Hz\n", new_f);
    
-    if (save)
-        printf ("\tNew frequecy %i Hz saved\n", new_f);
+        if (save)
+            printf ("\tNew frequecy %i Hz saved\n", new_f);
 
         buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
         buf[1] = (new_f >>  0) & 0xff;
