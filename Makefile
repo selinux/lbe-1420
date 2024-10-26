@@ -8,7 +8,7 @@ all: ${PROG}
 libhidapi-hidraw.so:
 	ln -s libhidapi-hidraw.so.0 libhidapi-hidraw.so
 
-${PROG}: lbe-142x.c
+${PROG}: lbe-142x.c lbe-142x.h
 	gcc ${CFLAGS} -o $@ $?
 
 clean:
