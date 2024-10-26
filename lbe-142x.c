@@ -27,7 +27,7 @@ int main(int argc, char **argv)
       
       int fd;
       int i, res, desc_size = 0;
-      u_int8_t buf[60];
+      u_int8_t buf[256];
       uint32_t current_f;
 
       struct hidraw_devinfo info;
@@ -39,7 +39,7 @@ int main(int argc, char **argv)
    */
       if (argc == 1)
       {
-	    printf("Usage: lbe-1420-set-freq /dev/hidraw??\n\n");
+	    printf("Usage: lbe-142x /dev/hidraw??\n\n");
             printf("        --f1:  integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n               the frequency is saved in flash\n\n");
             printf(" --f1_nosave:  integer within the range of 1 to 1100000000 (1Hz to 1.1GHz)\n               the frequency is not saved\n\n");
             printf("      --out1:  [0,1]\n\n");
@@ -70,7 +70,7 @@ int main(int argc, char **argv)
       else
       {
             if (info.vendor != VID_LBE || (info.product != PID_LBE_1420 && info.product != PID_LBE_1421)) {
-                printf("    Not a valid LBE-142x Device\n\n");
+                  printf("    Not a valid LBE-142x Device\n\n");
                   printf("    Device Info:\n");
                   printf("        vendor: 0x%04hx\n", info.vendor);
                   printf("        product: 0x%04hx\n", info.product);
