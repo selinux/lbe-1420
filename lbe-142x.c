@@ -51,15 +51,13 @@ int main(int argc, char **argv)
         return 1;
     }
 
-
     res = get_device_name(fd);
     res = get_device_info(fd);
+
     res = get_device_status(fd, &cur_f);
 
     if ( blink == 1 )
         blink_led(fd);
-    else
-        printf("\tNot blinking\n");
 
     if ( enable == 1 )
         enable_output(fd, 1);
@@ -70,76 +68,6 @@ int main(int argc, char **argv)
         res = set_freq(fd, new_f, cur_f, save);
 
     res = get_device_status(fd, &cur_f);
-//     /* Get Feature */
-//     buf[0] = 0x9; /* Report Number */
-//     res = ioctl(fd, HIDIOCGFEATURE(256), buf);
-// 
-//     if (res < 0) {
-//         perror("HIDIOCGFEATURE");
-//         return -1;
-//     } else {
-//  
-//     printf("  Status: 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx, 0x%hx\n", buf[0], buf[1], buf[2], buf[3], buf[4],buf[5]);
-// 
-//     if (buf[0] == 0) {
-//               if ((buf[1] & 0x15) == 0x15) {
-//                   printf("    Device OK");
-//               } else {
-//                   if ((buf[1] & GPS_LOCK_BIT) != GPS_LOCK_BIT) {
-//                       printf("\n    No GPS lock\n");	
-//                   }
-//     	          if ((buf[1] & ANT_OK_BIT) != ANT_OK_BIT) {
-//                       printf("\n    GPS antenna short circuit\n");	
-//                   }
-//                   if ((buf[1] & OUT1_EN_BIT) != OUT1_EN_BIT) {
-//                       printf("\n    GPS antenna short circuit\n");	
-//                   }
-//               }
-//               current_f = (buf[5] << 24) + (buf[4] << 16) + (buf[3] << 8) + buf[2];
-//               printf("\n    Current Frequency: %i\n", current_f);
-//           }
-//           printf("\n");
-//       }
-// 
-//       /* Get Raw Name */
-//       res = ioctl(fd, HIDIOCGRAWNAME(256), buf);
-// 
-//       if (res < 0) {
-//             perror("HIDIOCGRAWNAME");
-//       } else {
-
-//    //Get CLI values as vars
-//    int blink = -1;
-//    int enable = -1;
-//    int save = -1;
-//    uint32_t new_f = 0xffffffff;
-//    processCommandLineArguments(argc, argv, &new_f, &blink, &enable, &save);
-//    pintf("  Changes:\n");
-//    int changed = 0;
-//
-//    if (new_f != 0xffffffff && new_f != current_f) {
-//	    //Set Frequency
-//	    printf ("    Setting Frequecy: %i\n", new_f);
-//	    
-//	    buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
-//	    buf[1] = (new_f >>  0) & 0xff;
-//	    buf[2] = (new_f >>  8) & 0xff;
-//	    buf[3] = (new_f >> 16) & 0xff;
-//     	    buf[4] = (new_f >> 24) & 0xff;
-//	    /* Set Feature */
-//            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
-//            if (res < 0) perror("HIDIOCSFEATURE");
-//            changed = 1;
-//	}
-//	if (enable != -1) {
-//	    buf[0] = 1;
-//	    buf[1] = enable & 0x01;
-//	    printf ("    Enable State :%i\n", enable);
-//	    /* Set Feature */
-//            res = ioctl(fd, HIDIOCSFEATURE(60), buf);
-//            if (res < 0) perror("HIDIOCSFEATURE");
-//            changed = 1;
-//	}
 
     close(fd);
     return 0;
