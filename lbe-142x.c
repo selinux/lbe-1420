@@ -95,6 +95,9 @@ int set_freq(int fd, uint32_t new_f, uint32_t cur_f, int save){
     if (new_f != 0xffffffff && new_f != cur_f) {
         printf ("\tSet Frequecy: %i Hz\n", new_f);
    
+    if (save)
+        printf ("\tNew frequecy %i Hz saved\n", new_f);
+
         buf[0] = (save == 1 ? 4 : 3);//4 Save, 3 dont save
         buf[1] = (new_f >>  0) & 0xff;
         buf[2] = (new_f >>  8) & 0xff;
@@ -175,14 +178,7 @@ int get_device_status(int fd, uint32_t *cur_f) {
     u_int8_t buf[HID_MAX_DESCRIPTOR_SIZE];
     memset(&buf, 0x0, HID_MAX_DESCRIPTOR_SIZE);
 
-    printf("Status:\n");
-#ifdef DEBUG
-    printf("\n0x%hx", buf[0]);
-    for (int i = 1; i < 0x1f; i++)
-        printf(", 0x%hx", buf[i]);
-#endif
-
-    buf[0] = 0x9; /* Report Number */
+    buf[0] = 0x9;
 
     res = ioctl(fd, HIDIOCGFEATURE(256), buf);
 
@@ -190,28 +186,12 @@ int get_device_status(int fd, uint32_t *cur_f) {
         perror("HIDIOCGFEATURE");
         return -1;
     }
-
-//#define DEBUG
-#ifdef DEBUG
-    printf("\n0x%hx", buf[0]);
-    for (int i = 1; i < 0x1f; i++)
-        printf(", 0x%hx", buf[i]);
-#endif
+    printf("Status:\n");
 
     if (buf[1] & 0x1)
         printf("\tGPS lock\n");
     else
         printf("\tNo GPS lock\n");
-
-//     if (buf[1] >> 1 & 0x1)
-//         printf("\tRES 1 bit\n");
-//     else
-//         printf("\tNot RES 1 bit\n");
-// 
-//     if (buf[1] >> 2 & 0x1)
-//         printf("\tRES 2 bit\n");
-//     else
-//         printf("\tNot RES 2 bit\n");
 
     if (buf[1] >> 3 & 0x1)
         printf("\tGPS antenna connected\n");
@@ -235,7 +215,7 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
     int opt;
     int flag = 0;
 
-    while ((opt = getopt(argc, argv, "hdfbns:")) != -1) {
+    while ((opt = getopt(argc, argv, "hdfbns")) != -1) {
         switch (opt) {
             case 'h':
                 printf("Usage: %s [-h] [-d filename]\n", argv[0]);
@@ -257,7 +237,6 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
                     printf("Error: Frequency not in range 1Hz to 1.1GHz\n");
                     exit(EXIT_FAILURE);
                 }
-                printf("Output frequency: %i Hz\n", optarg);
                 flag += 1;
                 break;
             case 'b':
@@ -267,7 +246,7 @@ int get_args(int argc, char **argv, char *dev, uint32_t *freq, int *blink, int *
                 *enable = 0;
                 break;
             case 's':
-                *save = 0;
+                *save = 1;
                 break;
             case '?':
                 fprintf(stderr, "Unknown option: %c\n", optopt);
